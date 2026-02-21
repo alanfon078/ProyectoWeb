@@ -47,26 +47,29 @@ namespace ProyectoWeb
                 CargarCombos();
             }
         }
+
         private void CargarCombos()
         {
+            DAO db = new DAO();
+
             // Cargar Clientes
-            ddlClientes.DataSource = dbClientes;
+            ddlClientes.DataSource = db.ObtenerClientes();
             ddlClientes.DataTextField = "Nombre";
-            ddlClientes.DataValueField = "Id";
+            ddlClientes.DataValueField = "IdCliente"; // Asegúrate que coincida con la columna SQL
             ddlClientes.DataBind();
             ddlClientes.Items.Insert(0, new ListItem("-- Seleccione un Cliente --", "0"));
 
             // Cargar Vehículos
-            ddlVehiculos.DataSource = dbAutos;
+            ddlVehiculos.DataSource = db.ObtenerVehiculos();
             ddlVehiculos.DataTextField = "Descripcion";
-            ddlVehiculos.DataValueField = "Id";
+            ddlVehiculos.DataValueField = "IdVehiculo"; // Asegúrate que coincida con la columna SQL
             ddlVehiculos.DataBind();
             ddlVehiculos.Items.Insert(0, new ListItem("-- Seleccione un Vehículo --", "0"));
 
             // Cargar Servicios
-            ddlServicios.DataSource = dbServicios;
+            ddlServicios.DataSource = db.ObtenerServicios();
             ddlServicios.DataTextField = "Descripcion";
-            ddlServicios.DataValueField = "Id";
+            ddlServicios.DataValueField = "IdServicio"; // Coincide con tu SELECT de DAO.cs
             ddlServicios.DataBind();
             ddlServicios.Items.Insert(0, new ListItem("-- Seleccione un Servicio --", "0"));
         }
@@ -99,50 +102,18 @@ namespace ProyectoWeb
             }
         }
 
-        protected void btnAgregar_Click(object sender, EventArgs e)
-        {
-            // 1. Validar que seleccionó un servicio válido (no el "0")
-            int idServicio = int.Parse(ddlServicios.SelectedValue);
-            if (idServicio == 0) return; // No hace nada si no ha seleccionado uno
-
-            // 2. Validar que la cantidad sea válida
-            int cantidad = 0;
-            if (!int.TryParse(txtCantidad.Text, out cantidad) || cantidad <= 0) return;
-
-            // 3. Buscar los datos del servicio seleccionado en nuestra lista de prueba
-            var servicio = dbServicios.FirstOrDefault(s => s.Id == idServicio);
-            if (servicio != null)
-            {
-                // 4. Calcular el importe (Precio x Cantidad)
-                decimal importe = servicio.Precio * cantidad;
-
-                // 5. Traer la tabla de la memoria, agregarle la fila y volverla a guardar
-                DataTable dt = TablaDetalles;
-                dt.Rows.Add(servicio.Id, servicio.Descripcion, cantidad, servicio.Precio, importe);
-                TablaDetalles = dt;
-
-                // 6. Actualizar el GridView en la pantalla
-                gvDetalles.DataSource = dt;
-                gvDetalles.DataBind();
-
-                // 7. Recalcular el Subtotal, IVA y Total
-                CalcularTotales();
-
-                // 8. Opcional: Reiniciar el combo de servicios y cantidad para agregar otro rápido
-                ddlServicios.SelectedIndex = 0;
-                txtCantidad.Text = "1";
-            }
-        }
-
         protected void ddlClientes_SelectedIndexChanged(object sender, EventArgs e)
         {
             int idSeleccionado = int.Parse(ddlClientes.SelectedValue);
-            var cliente = dbClientes.FirstOrDefault(c => c.Id == idSeleccionado);
-
-            if (cliente != null)
+            if (idSeleccionado > 0)
             {
-                txtRFC.Text = cliente.RFC;
-                txtNombre.Text = cliente.Nombre;
+                DAO db = new DAO();
+                DataRow cliente = db.ObtenerClientePorId(idSeleccionado);
+                if (cliente != null)
+                {
+                    txtRFC.Text = cliente["RFC"].ToString();
+                    txtNombre.Text = cliente["Nombre"].ToString();
+                }
             }
             else
             {
@@ -153,23 +124,52 @@ namespace ProyectoWeb
 
         protected void ddlVehiculos_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // Obtenemos el ID del auto seleccionado (1, 2, o 3)
             int idSeleccionado = int.Parse(ddlVehiculos.SelectedValue);
-
-            // Buscamos el auto en nuestra lista temporal
-            var auto = dbAutos.FirstOrDefault(a => a.Id == idSeleccionado);
-
-            // Si encontró el auto (es decir, no seleccionaron la opción "0")
-            if (auto != null)
+            if (idSeleccionado > 0)
             {
-                txtClaveAuto.Text = auto.Clave;
-                txtDescAuto.Text = auto.Descripcion;
+                DAO db = new DAO();
+                DataRow auto = db.ObtenerVehiculoPorId(idSeleccionado);
+                if (auto != null)
+                {
+                    txtClaveAuto.Text = auto["Clave"].ToString();
+                    txtDescAuto.Text = auto["Descripcion"].ToString();
+                }
             }
             else
             {
-                // Si seleccionan "Seleccione un Vehículo", limpiamos los campos
                 txtClaveAuto.Text = string.Empty;
                 txtDescAuto.Text = string.Empty;
+            }
+        }
+
+        protected void btnAgregar_Click(object sender, EventArgs e)
+        {
+            int idServicio = int.Parse(ddlServicios.SelectedValue);
+            if (idServicio == 0) return;
+
+            int cantidad = 0;
+            if (!int.TryParse(txtCantidad.Text, out cantidad) || cantidad <= 0) return;
+
+            DAO db = new DAO();
+            DataRow servicio = db.ObtenerServicioPorId(idServicio);
+
+            if (servicio != null)
+            {
+                string descripcion = servicio["Descripcion"].ToString();
+                decimal precio = Convert.ToDecimal(servicio["Precio"]);
+                decimal importe = precio * cantidad;
+
+                DataTable dt = TablaDetalles;
+                dt.Rows.Add(idServicio, descripcion, cantidad, precio, importe);
+                TablaDetalles = dt;
+
+                gvDetalles.DataSource = dt;
+                gvDetalles.DataBind();
+
+                CalcularTotales();
+
+                ddlServicios.SelectedIndex = 0;
+                txtCantidad.Text = "1";
             }
         }
         private void CalcularTotales()
@@ -199,37 +199,53 @@ namespace ProyectoWeb
         {
             try
             {
-                // 1. Recolectar datos de los controles (Dropdowns y Textboxes)
                 int idCliente = int.Parse(ddlClientes.SelectedValue);
                 int idVehiculo = int.Parse(ddlVehiculos.SelectedValue);
 
-                // 2. Obtener los detalles. 
-                // En WebForms, la tabla temporal de la vista suele guardarse en una Sesión ("Session") de tipo DataTable
-                DataTable dtDetalles = (DataTable)Session["TablaDetalles"];
+                // Validar que seleccionaron opciones válidas
+                if (idCliente == 0 || idVehiculo == 0) return;
+
+                DataTable dtDetalles = this.TablaDetalles;
 
                 if (dtDetalles != null && dtDetalles.Rows.Count > 0)
                 {
-                    // 3. Instanciar clase de acceso a datos y ejecutar
                     DAO db = new DAO();
-                    int folioGenerado = db.GuardarOrdenCompleta(idCliente, idVehiculo, Decimal.Parse(txtSubtotal.Text), Decimal.Parse(txtIva.Text), Decimal.Parse(txtTotal.Text), dtDetalles);
 
-                    // 4. Mostrar éxito y asignar el folio autogenerado a la pantalla
+                    // Usar System.Globalization.NumberStyles.Currency para que ignore el signo de '$' y las comas
+                    decimal subtotal = decimal.Parse(txtSubtotal.Text, System.Globalization.NumberStyles.Currency);
+                    decimal iva = decimal.Parse(txtIva.Text, System.Globalization.NumberStyles.Currency);
+                    decimal total = decimal.Parse(txtTotal.Text, System.Globalization.NumberStyles.Currency);
+
+                    int folioGenerado = db.GuardarOrdenCompleta(idCliente, idVehiculo, subtotal, iva, total, dtDetalles);
+
                     txtFolio.Text = folioGenerado.ToString();
-                    //txtMensajeExito.Text = "Orden registrada exitosamente con el folio: " + folioGenerado;
 
-                    // Limpiar la pantalla y la sesión
-                    Session["TablaDetalles"] = null;
-                    // LlenarGridView(); // Tu método para limpiar la tabla
+                    // MÁXIMA FUNCIONALIDAD: Limpiar todo para una nueva captura
+                    TablaDetalles = null; // Borra el ViewState
+                    gvDetalles.DataSource = null;
+                    gvDetalles.DataBind();
+
+                    txtSubtotal.Text = (0m).ToString("C");
+                    txtIva.Text = (0m).ToString("C");
+                    txtTotal.Text = (0m).ToString("C");
+
+                    ddlClientes.SelectedIndex = 0;
+                    ddlVehiculos.SelectedIndex = 0;
+                    txtRFC.Text = string.Empty;
+                    txtNombre.Text = string.Empty;
+                    txtClaveAuto.Text = string.Empty;
+                    txtDescAuto.Text = string.Empty;
                 }
                 else
                 {
-                    
+                    Console.WriteLine("Necesita agregar servicios");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Ocurrio un error: "+ex.Message);
+                Console.WriteLine("Ocurrio un error: " + ex.Message);
             }
         }
+
     }
 }

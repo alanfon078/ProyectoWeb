@@ -121,5 +121,90 @@ namespace ProyectoWeb.Dao
             return folioGenerado; // Retorna el folio para mostrarlo en pantalla
         }
 
+        public DataTable ObtenerClientes()
+        {
+            DataTable dt = new DataTable();
+            string connectionString = ConfigurationManager.ConnectionStrings["ConexionTaller"].ConnectionString;
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                using (SqlCommand cmd = new SqlCommand("SELECT IdCliente, RFC, Nombre FROM Clientes", conn)) // Ajusta el nombre de tu tabla
+                {
+                    conn.Open();
+                    using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                    {
+                        da.Fill(dt);
+                    }
+                }
+            }
+            return dt;
+        }
+
+        public DataTable ObtenerVehiculos()
+        {
+            DataTable dt = new DataTable();
+            string connectionString = ConfigurationManager.ConnectionStrings["ConexionTaller"].ConnectionString;
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                using (SqlCommand cmd = new SqlCommand("SELECT IdVehiculo, Clave, Descripcion FROM Vehiculos", conn)) // Ajusta el nombre de tu tabla
+                {
+                    conn.Open();
+                    using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                    {
+                        da.Fill(dt);
+                    }
+                }
+            }
+            return dt;
+        }
+
+        public DataRow ObtenerClientePorId(int idCliente)
+        {
+            DataTable dt = new DataTable();
+            string connectionString = ConfigurationManager.ConnectionStrings["ConexionTaller"].ConnectionString;
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                // Ajusta el nombre de la tabla si es diferente
+                using (SqlCommand cmd = new SqlCommand("SELECT RFC, Nombre FROM Clientes WHERE IdCliente = @Id", conn))
+                {
+                    cmd.Parameters.AddWithValue("@Id", idCliente);
+                    conn.Open();
+                    using (SqlDataAdapter da = new SqlDataAdapter(cmd)) da.Fill(dt);
+                }
+            }
+            return dt.Rows.Count > 0 ? dt.Rows[0] : null;
+        }
+
+        public DataRow ObtenerVehiculoPorId(int idVehiculo)
+        {
+            DataTable dt = new DataTable();
+            string connectionString = ConfigurationManager.ConnectionStrings["ConexionTaller"].ConnectionString;
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                using (SqlCommand cmd = new SqlCommand("SELECT Clave, Descripcion FROM Vehiculos WHERE IdVehiculo = @Id", conn))
+                {
+                    cmd.Parameters.AddWithValue("@Id", idVehiculo);
+                    conn.Open();
+                    using (SqlDataAdapter da = new SqlDataAdapter(cmd)) da.Fill(dt);
+                }
+            }
+            return dt.Rows.Count > 0 ? dt.Rows[0] : null;
+        }
+
+        public DataRow ObtenerServicioPorId(int idServicio)
+        {
+            DataTable dt = new DataTable();
+            string connectionString = ConfigurationManager.ConnectionStrings["ConexionTaller"].ConnectionString;
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                using (SqlCommand cmd = new SqlCommand("SELECT Descripcion, Precio FROM Servicios WHERE IdServicio = @Id", conn))
+                {
+                    cmd.Parameters.AddWithValue("@Id", idServicio);
+                    conn.Open();
+                    using (SqlDataAdapter da = new SqlDataAdapter(cmd)) da.Fill(dt);
+                }
+            }
+            return dt.Rows.Count > 0 ? dt.Rows[0] : null;
+        }
+
     }
 }
