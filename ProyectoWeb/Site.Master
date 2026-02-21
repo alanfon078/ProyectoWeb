@@ -1,0 +1,16 @@
+﻿<%@ Master Language="C#" CodeBehind="Site.Master.cs" Inherits="ProyectoWeb.SiteMaster" %>
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><asp:ContentPlaceHolder ID="HeadTitle" runat="server">Título predeterminado</asp:ContentPlaceHolder></title>
+</head>
+<body>
+    <header>
+    </header>
+    <asp:ContentPlaceHolder ID="MainContent" runat="server"></asp:ContentPlaceHolder>
+
+</body>
+</html>
