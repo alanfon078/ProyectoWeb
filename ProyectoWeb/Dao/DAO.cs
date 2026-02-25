@@ -55,7 +55,7 @@ namespace ProyectoWeb.Dao
             return folioGenerado;
         }
 
-        // Método que guarda la orden y sus detalles en una sola transacción
+        // Metodo que guarda la orden y sus detalles en una sola transaccion
         public int GuardarOrdenCompleta(int idCliente, int idVehiculo, decimal subtotal, decimal iva, decimal total, DataTable detallesServicio)
         {
             int folioGenerado = 0;
@@ -65,7 +65,7 @@ namespace ProyectoWeb.Dao
             {
                 conn.Open();
 
-                // 1. Iniciar la transacción
+                // 1. Iniciar la transaccion
                 using (SqlTransaction transaction = conn.BeginTransaction())
                 {
                     try
@@ -96,7 +96,7 @@ namespace ProyectoWeb.Dao
                             // Iterar sobre cada fila del DataTable de detalles
                             foreach (DataRow fila in detallesServicio.Rows)
                             {
-                                cmdDetalle.Parameters.Clear(); // Limpiar parámetros en cada iteración
+                                cmdDetalle.Parameters.Clear(); // Limpiar parametros en cada iteración
                                 cmdDetalle.Parameters.AddWithValue("@Folio", folioGenerado);
                                 cmdDetalle.Parameters.AddWithValue("@IdServicio", fila["IdServicio"]);
                                 cmdDetalle.Parameters.AddWithValue("@Cantidad", fila["Cantidad"]);
@@ -106,7 +106,7 @@ namespace ProyectoWeb.Dao
                             }
                         }
 
-                        // 4. Confirmar la transacción si todo salió bien
+                        // 4. Confirmar la transaccion si todo salió bien
                         transaction.Commit();
                     }
                     catch (Exception ex)
